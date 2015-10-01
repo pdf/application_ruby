@@ -26,38 +26,39 @@ action :before_compile do
   include_recipe "apache2::mod_rewrite"
   include_recipe "passenger_apache2"
 
-  unless new_resource.server_aliases
-    server_aliases = [ "#{new_resource.application.name}.#{node['domain']}", node['fqdn'] ]
+  resource = new_resource
+  unless resource.server_aliases
+    server_aliases = [ "#{resource.application.name}.#{node['domain']}", node['fqdn'] ]
     if node.has_key?("cloud")
       server_aliases << node['cloud']['public_hostname']
     end
-    new_resource.server_aliases server_aliases
+    resource.server_aliases server_aliases
   end
 
-  new_resource.restart_command do
-    directory "#{new_resource.application.path}/current/tmp" do
+  resource.restart_command do
+    directory "#{resource.application.path}/current/tmp" do
       recursive true
     end
-    file "#{new_resource.application.path}/current/tmp/restart.txt" do
+    file "#{resource.application.path}/current/tmp/restart.txt" do
       action :touch
     end
-  end unless new_resource.restart_command
+  end unless resource.restart_command
 
 end
 
 action :before_deploy do
 
-  new_resource = @new_resource
+  resource = @new_resource
 
-  web_app new_resource.application.name do
-    docroot "#{new_resource.application.path}/current/public"
-    template new_resource.webapp_template || "#{new_resource.application.name}.conf.erb"
-    cookbook new_resource.cookbook_name.to_s
-    server_name "#{new_resource.application.name}.#{node['domain']}"
-    server_aliases new_resource.server_aliases
+  web_app resource.application.name do
+    docroot "#{resource.application.path}/current/public"
+    template resource.webapp_template || "#{resource.application.name}.conf.erb"
+    cookbook resource.cookbook_name.to_s
+    server_name "#{resource.application.name}.#{node['domain']}"
+    server_aliases resource.server_aliases
     log_dir node['apache']['log_dir']
-    rails_env new_resource.application.environment_name
-    extra new_resource.params
+    rails_env resource.application.environment_name
+    extra resource.params
   end
 
   apache_site "000-default" do
